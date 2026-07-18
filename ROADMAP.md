@@ -17,14 +17,14 @@ The React and TypeScript frontend is connected to the deployed Studionet contrac
 ### Verified delivery evidence
 
 - Source repository: [congab91-maker/sponsorguard](https://github.com/congab91-maker/sponsorguard)
-- Live web application: [SponsorGuard on Vercel](https://sponsorguard-seven.vercel.app)
+- Live web application: [SponsorGuard on Vercel](https://sponsorguard-buildgenlayer.vercel.app)
 - Studionet contract: [`0x2012c18961Ba71Defb3de61eabCb87866938CC95`](https://explorer-studio.genlayer.com/address/0x2012c18961Ba71Defb3de61eabCb87866938CC95)
 - Deployment transaction: [`0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54`](https://explorer-studio.genlayer.com/tx/0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54), finalized successfully on Studionet
 - Network: GenLayer Studionet, chain ID `61999`, using the official Studio RPC documented in [Networks & RPCs](https://docs.genlayer.com/developers/networks)
 - Contract verification: GenVM lint, validation, and check commands pass; the validator reports 10 public methods (7 write and 3 view).
 - Contract tests: 18 of 18 tests pass locally.
 - Frontend verification: the production build and ESLint pass. Ten of 11 Vitest tests pass; the polling-retry-exhaustion test currently exceeds its assertion timeout.
-- Deployment verification: the Vercel production deployment is `Ready`, the live page returns successfully, displays the exact Studionet contract address, and loads without browser console errors during the recorded smoke check.
+- Deployment verification: the Vercel production deployment belongs to the Bruno (`brunogg`) team and is `Ready`. Its verified production domain is `sponsorguard-buildgenlayer.vercel.app`; the live page returns successfully, displays the exact Studionet contract address, and loads without browser console errors during the recorded smoke check.
 - Demo fixtures: compliant, warning, violation, and removed-content HTML fixtures are publicly reachable for sandbox demonstrations.
 
 ### Verified V1 limitations
