@@ -37,8 +37,8 @@ The React and TypeScript frontend is connected to the deployed Studionet contrac
 - The contract records verdicts, findings, reasons, actions, and timestamps, but it does not preserve a content snapshot or content hash for later evidence comparison.
 - The public-content fetch is unauthenticated. Private posts, login-gated pages, anti-bot pages, and platform-specific rendering are not supported reliably.
 - The removed-content fixture contains a “404 Not Found” page but returns HTTP 200. The offline sandbox labels it as removed; a live contract evaluation would still depend on the validators interpreting the returned page.
-- The reviewed source hides fixture controls in live mode and labels them as offline-only. The currently deployed Vercel build predates that correction and still displays the fixture panel alongside live mode; it must be redeployed before the live UI matches this repository state.
-- The repository now has reviewer-facing root, frontend, and contract documentation with the current API, transaction-finality behavior, and limitations. These local changes are not public until separately reviewed, committed, and pushed.
+- The deployed live-mode interface hides offline fixture controls and displays the verified Studionet contract address. Sandbox fixtures remain available only after the user explicitly enables offline simulation.
+- Reviewer-facing root, frontend, contract, and roadmap documentation is public and matches the released source, current API, transaction-finality behavior, and stated limitations.
 - There is no versioned deployment script in the repository. Vercel build configuration is maintained in the linked Vercel project.
 - The frontend production bundle reports a JavaScript chunk above Vite's default 500 kB warning threshold.
 - No verified users, campaigns, partnerships, testimonials, traction, or product analytics are currently available.
@@ -144,9 +144,9 @@ Current evidence and future targets are deliberately separated. Future targets a
 
 ### Phase V1.1 — Release Evidence and Reliability
 
-- **Problem:** Local quality gates and reviewer documentation are complete, but there is no CI enforcement, the corrected frontend has not been redeployed, deployment is not scripted, and there is no verified live campaign transaction sequence.
+- **Problem:** Local quality gates, reviewer documentation, and the corrected frontend release are complete, but there is no CI enforcement, contract deployment is not scripted, and there is no verified live campaign transaction sequence.
 - **User value:** Judges and pilot users receive reproducible setup instructions, clearer product identity, trustworthy test evidence, and a demonstrably working on-chain journey.
-- **Planned changes:** Add CI; add a reproducible Studionet/Vercel deployment runbook or script; deploy the reviewed frontend title and live/sandbox separation; make the removed fixture return a genuine failure state or use an explicit retrieval mock; execute and document a funded end-to-end Studionet smoke campaign.
+- **Planned changes:** Add CI; add a reproducible Studionet contract-deployment runbook or script; make the removed fixture return a genuine failure state or use an explicit retrieval mock; execute and document a funded end-to-end Studionet smoke campaign.
 - **Related integrations:** GitHub Actions or equivalent, GenVM tooling, Vercel, Studionet RPC, and Explorer.
 - **Conditions:** Source changes must be separately approved; funded test wallets, public test content, stable SDK/tool versions, and permission to create application-level transactions are required.
 - **Success metrics:** 18/18 contract tests and 11/11 frontend tests pass in three consecutive CI runs; all release documents match the public API; at least one complete Studionet campaign flow is evidenced by Explorer transactions.

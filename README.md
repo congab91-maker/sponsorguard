@@ -129,7 +129,7 @@ The verified local result is 11 passing Vitest tests, a clean Oxlint run, and a 
 
 ## Deployment notes
 
-The repository intentionally contains no automated contract-deployment script. The verified contract was deployed through GenLayer Studio to Studionet. A future deployment must use the current Studio-generated template and current official SDK/network configuration, wait for finality, verify execution success, then update the frontend environment and reviewer links with the new real address. Vercel is configured to build the `frontend` directory; no deployment is performed by the verification task documented here.
+The repository intentionally contains no automated contract-deployment script. The verified contract was deployed through GenLayer Studio to Studionet. A future contract deployment must use the current Studio-generated template and current official SDK/network configuration, wait for finality, verify execution success, then update the frontend environment and reviewer links with the new real address. Vercel Git integration builds the `frontend` directory after approved pushes to `main`; the reviewer-preparation release was deployed through that linked workflow.
 
 ## Trust boundaries and V1 limitations
 
