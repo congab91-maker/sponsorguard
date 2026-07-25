@@ -73,6 +73,8 @@ Appeal commit/reveal states are also rendered if returned by the network. `UNDET
 
 `FINISHED_WITH_ERROR` and a raw non-success leader execution are shown as contract execution failures. If both execution representations are absent after finalization, the UI keeps the hash, refreshes contract state, and labels the result unavailable rather than claiming a revert. `CANCELED`, `VALIDATORS_TIMEOUT`, and `LEADER_TIMEOUT` are terminal failures. RPC or wallet exceptions are surfaced with the action name. Polling stops after 150 attempts at a 2-second production interval and displays `Polling Timeout`.
 
+After a successful compliance recheck, the dashboard reloads both the campaign record and every stored check so vesting counters and adjudication history advance together without requiring a page refresh.
+
 After an execution failure, correct the contract input or state before retrying. After an RPC/polling timeout, use the displayed hash to inspect Explorer and refresh the campaign before resubmitting, especially for value-bearing calls. The frontend intentionally does not treat submission or consensus acceptance as final success.
 
 ## Commands
@@ -87,7 +89,7 @@ npm run build
 
 Current verified local results:
 
-- 15/15 Vitest tests pass, including OKX/EIP-1193 connection, Studionet addition/switching, safe rejection recovery, and both transaction execution-result schemas returned by the SDK/Studionet.
+- 16/16 Vitest tests pass, including OKX/EIP-1193 connection, Studionet addition/switching, safe rejection recovery, both transaction execution-result schemas returned by the SDK/Studionet, and post-recheck audit-history synchronization.
 - Oxlint passes.
 - The TypeScript/Vite production build succeeds.
 - Vite reports a bundle-size warning because the main JavaScript chunk is above 500 kB; this is documented, not hidden.

@@ -704,7 +704,7 @@ function App() {
     }
 
     if (!client) return;
-    await sendAndFinalizeTransaction("Request Compliance Recheck", () =>
+    const success = await sendAndFinalizeTransaction("Request Compliance Recheck", () =>
       client.writeContract({
         address: CONTRACT_ADDRESS as `0x${string}`,
         functionName: "request_recheck",
@@ -712,6 +712,10 @@ function App() {
         value: 0n
       })
     );
+
+    if (success) {
+      await fetchCampaignDetailsReal(id);
+    }
   };
 
   // Settle Expired Campaign

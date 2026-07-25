@@ -292,6 +292,75 @@ describe("SponsorGuard Frontend Dashboard Tests", () => {
       expect(mockReadContract).toHaveBeenCalled();
     });
 
+    it("should refresh adjudication history after a finalized recheck", async () => {
+      let recheckFinalized = false;
+      const campaign = (checksRun: number) => ({
+        campaign_id: 1,
+        sponsor: TEST_WALLET_ADDRESS,
+        creator: "0x2222222222222222222222222222222222222222",
+        budget: "30000000000000000",
+        bond: "6000000000000000",
+        deadline: 9999999999,
+        recheck_interval: 60,
+        status: "ACTIVE",
+        content_url: "https://example.com/post",
+        policy: "Disclosure ad hashtag required",
+        tranches_released: checksRun,
+        checks_run: checksRun,
+        next_check_at: 0,
+        warning_held: false
+      });
+
+      mockReadContract.mockImplementation(({ functionName, args }: { functionName: string; args: bigint[] }) => {
+        if (functionName === "get_campaign_count") return Promise.resolve(1n);
+        if (functionName === "get_campaign") {
+          return Promise.resolve(JSON.stringify(campaign(recheckFinalized ? 2 : 1)));
+        }
+        if (functionName === "get_check") {
+          const sequence = Number(args[1]);
+          return Promise.resolve(JSON.stringify({
+            sequence,
+            timestamp: 1785013000 + sequence,
+            verdict: "COMPLIANT",
+            disclosure_present: true,
+            policy_findings: ["Disclosure present"],
+            reason: `Compliance check ${sequence}`,
+            recommended_action: "RELEASE"
+          }));
+        }
+        return Promise.reject(new Error(`Unexpected method: ${functionName}`));
+      });
+      mockGetTransaction.mockImplementation(async () => {
+        recheckFinalized = true;
+        return {
+          statusName: TransactionStatus.FINALIZED,
+          txExecutionResultName: ExecutionResult.FINISHED_WITH_RETURN
+        };
+      });
+
+      render(<App />);
+      fireEvent.click(screen.getByRole("button", { name: /Connect Wallet/i }));
+      await waitFor(() => {
+        expect(screen.queryByRole("button", { name: /Connect Wallet/i })).not.toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole("tab", { name: /Public Auditor/i }));
+      fireEvent.change(screen.getByLabelText(/Campaign ID/i), { target: { value: "1" } });
+      fireEvent.click(screen.getByRole("button", { name: /Find Campaign/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Check #1")).toBeInTheDocument();
+      });
+      expect(screen.queryByText("Check #2")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /Request Compliance Recheck/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Check #2")).toBeInTheDocument();
+      });
+      expect(screen.getByText(/2\/3 \(Tranches 1 & 2\)/i)).toBeInTheDocument();
+    });
+
     it("should show execution error and not refresh state when live transaction execution fails", async () => {
       mockGetTransaction.mockResolvedValue({
         statusName: TransactionStatus.FINALIZED,

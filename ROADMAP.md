@@ -21,16 +21,17 @@ The React and TypeScript frontend is connected to the deployed Studionet contrac
 - Reviewer screenshot: [`docs/sponsorguard-live.png`](docs/sponsorguard-live.png), captured from the public live-mode interface after wallet-compatibility release `c2ae2d0`; it is UI evidence, not campaign-transaction evidence.
 - Studionet contract: [`0x2012c18961Ba71Defb3de61eabCb87866938CC95`](https://explorer-studio.genlayer.com/address/0x2012c18961Ba71Defb3de61eabCb87866938CC95)
 - Deployment transaction: [`0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54`](https://explorer-studio.genlayer.com/tx/0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54), finalized successfully on Studionet
+- Completed Studionet smoke campaign: Campaign `#1` escrowed `0.03 GEN`, accepted a `0.006 GEN` bond, stored three `COMPLIANT` / `RELEASE` adjudications, released all three tranches, returned the creator bond, and reached `COMPLETED`. Explorer evidence: [create](https://explorer-studio.genlayer.com/tx/0xb147d179d337e4b29961c62ef52da6f9d8c7d24d8f0d1d0c778299c30f5fba83), [accept](https://explorer-studio.genlayer.com/tx/0x875008b3037697a3df165993adf7dcf2dc0c875f95070251a70d25514f0a3364), [submit](https://explorer-studio.genlayer.com/tx/0x8f65ef577af1d883a7e5e89cc2d89717f6156d79ebf844440fb924de5ca1c798), [baseline](https://explorer-studio.genlayer.com/tx/0xd90dcc0d9fe36b43ffb4c0d2100063fd1d7cee68497cf967b1e5d056b4ab92ef), [recheck 1](https://explorer-studio.genlayer.com/tx/0x07638dac28f427e16bb4d243ac084256e2c8113c0a74f6a8b45052aed7542ecd), and [recheck 2](https://explorer-studio.genlayer.com/tx/0x664e29460083cdd448ea0527a2e019ba8a3c6744a7020bf6b257be1bfac69519).
 - Network: GenLayer Studionet, chain ID `61999`, using the official Studio RPC documented in [Networks & RPCs](https://docs.genlayer.com/developers/networks)
 - Contract verification: GenVM lint, validation, and check commands pass; the validator reports 10 public methods (7 write and 3 view).
 - Contract tests: 18 of 18 tests pass locally.
-- Frontend verification: 15 of 15 Vitest tests and Oxlint pass, and the production build succeeds. Coverage includes an OKX-shaped EIP-1193 provider, Studionet addition/switching, safe recovery from a rejected connection, and both normalized and raw Studionet execution-result schemas.
+- Frontend verification: 16 of 16 Vitest tests and Oxlint pass, and the production build succeeds. Coverage includes an OKX-shaped EIP-1193 provider, Studionet addition/switching, safe recovery from a rejected connection, normalized and raw Studionet execution-result schemas, and audit-history synchronization after rechecks.
 - Deployment verification: the production domain `sponsorguard-buildgenlayer.vercel.app` returns successfully and displays the exact Studionet contract address. The deployment account or team is not asserted here because it is not public application evidence.
 - Demo fixtures: compliant, warning, violation, and removed-content HTML fixtures are publicly reachable for sandbox demonstrations.
 
 ### Verified V1 limitations
 
-- The Explorer currently shows one transaction for this contract: the successful deployment. It does not yet provide evidence of a completed live campaign flow or a successful application-level write transaction.
+- One operator-run compliant smoke campaign is verified on Studionet. This demonstrates the live path but is not evidence of production reliability, adverse-verdict handling on the deployed contract, external adoption, or repeat usage.
 - The test suites use mocked web, LLM, VM, and frontend SDK behavior. There is no automated end-to-end test against the deployed Studionet contract.
 - Rechecks require manual transactions. There is no keeper, scheduler, randomized monitoring window, notification service, or retry service.
 - Studionet is a temporary development network. The current address and state should not be treated as a permanent production deployment.
@@ -41,7 +42,7 @@ The React and TypeScript frontend is connected to the deployed Studionet contrac
 - Reviewer-facing root, frontend, contract, and roadmap documentation is public and matches the released source, current API, transaction-finality behavior, and stated limitations.
 - There is no versioned deployment script in the repository. Vercel build configuration is maintained in the linked Vercel project.
 - The frontend production bundle reports a JavaScript chunk above Vite's default 500 kB warning threshold.
-- No verified users, campaigns, partnerships, testimonials, traction, or product analytics are currently available.
+- No verified external users, partnerships, testimonials, traction, or product analytics are currently available. Campaign `#1` is an operator-run smoke test and is not counted as adoption.
 
 ## Target Users
 
@@ -128,11 +129,11 @@ Current evidence and future targets are deliberately separated. Future targets a
 | Metric | Current evidence | Future target | Measurement method |
 | --- | --- | --- | --- |
 | Contract verification | GenVM lint, validation, and check pass; 18/18 local contract tests pass | Three consecutive CI runs passing all contract gates before each tagged release | CI artifacts containing tool versions, command output, and commit SHA |
-| Frontend quality gate | Build and Oxlint pass; 15/15 Vitest tests pass locally | The full frontend gate passes in at least three consecutive CI runs | CI test reports and build artifacts |
+| Frontend quality gate | Build and Oxlint pass; 16/16 Vitest tests pass locally | The full frontend gate passes in at least three consecutive CI runs | CI test reports and build artifacts |
 | Deployment availability | Vercel production deployment is `Ready`; the live page returned successfully during the smoke check | At least 99% measured demo availability during a defined 30-day pilot window | External uptime monitor with timestamped results |
-| Application-level contract activity | No successful campaign transaction is currently evidenced; Explorer shows only the deployment transaction | At least 20 successful pilot write transactions across at least 10 test campaigns | Explorer/RPC transaction records grouped by contract method and campaign |
-| Write-transaction success rate | Not yet measured from real campaign writes | At least 95% of user-submitted pilot writes finalize successfully, excluding explicit user rejection | Compare initiated transaction telemetry with finalized execution results and Explorer records |
-| Full-flow completion | No live end-to-end campaign completion has been verified | At least 80% of funded pilot campaigns reach a documented terminal state without operator repair | Indexed campaign state transitions, reconciled with contract reads |
+| Application-level contract activity | Campaign `#1` provides six successful application writes covering create, accept, submit, baseline, and two rechecks | At least 20 successful pilot write transactions across at least 10 test campaigns | Explorer/RPC transaction records grouped by contract method and campaign |
+| Write-transaction success rate | The documented smoke sequence has six successful writes, but one controlled sequence is too small to claim a reliability rate | At least 95% of user-submitted pilot writes finalize successfully, excluding explicit user rejection | Compare initiated transaction telemetry with finalized execution results and Explorer records |
+| Full-flow completion | One operator-run campaign reached `COMPLETED` with 3/3 checks and 3/3 tranches released | At least 80% of funded pilot campaigns reach a documented terminal state without operator repair | Indexed campaign state transitions, reconciled with contract reads |
 | Compliance-check timeliness | Manual trigger behavior is implemented; no live timing dataset exists | At least 95% of scheduled pilot checks are triggered inside the intended monitoring window after automation is introduced | Scheduler logs reconciled with on-chain check timestamps |
 | Retrieval reliability | Four demo fixture URLs respond, but the removed fixture returns HTTP 200 | At least 95% successful retrieval for explicitly supported public sources; failures must have a categorized reason | Instrumented retrieval outcomes by source type and HTTP/rendering result |
 | Consensus outcome quality | Unit tests cover agreement and disagreement; no labeled live evaluation set exists | Review a consented, labeled pilot set and document disagreement, false-positive, and indeterminate rates before production use | Human-reviewed evaluation dataset linked to anonymized check outputs |
@@ -144,12 +145,12 @@ Current evidence and future targets are deliberately separated. Future targets a
 
 ### Phase V1.1 — Release Evidence and Reliability
 
-- **Problem:** Local quality gates, reviewer documentation, and the corrected frontend release are complete, but there is no CI enforcement, contract deployment is not scripted, and there is no verified live campaign transaction sequence.
+- **Problem:** Local quality gates, reviewer documentation, and one completed live campaign are verified, but there is no CI enforcement, contract deployment is not scripted, and the smoke flow is still manually executed.
 - **User value:** Judges and pilot users receive reproducible setup instructions, clearer product identity, trustworthy test evidence, and a demonstrably working on-chain journey.
-- **Planned changes:** Add CI; add a reproducible Studionet contract-deployment runbook or script; make the removed fixture return a genuine failure state or use an explicit retrieval mock; execute and document a funded end-to-end Studionet smoke campaign.
+- **Planned changes:** Add CI; add a reproducible Studionet contract-deployment runbook or script; make the removed fixture return a genuine failure state or use an explicit retrieval mock; and document a repeatable release smoke procedure that reconciles contract state with Explorer transactions.
 - **Related integrations:** GitHub Actions or equivalent, GenVM tooling, Vercel, Studionet RPC, and Explorer.
 - **Conditions:** Source changes must be separately approved; funded test wallets, public test content, stable SDK/tool versions, and permission to create application-level transactions are required.
-- **Success metrics:** 18/18 contract tests and 15/15 frontend tests pass in three consecutive CI runs; all release documents match the public API; at least one complete Studionet campaign flow is evidenced by Explorer transactions.
+- **Success metrics:** 18/18 contract tests and 16/16 frontend tests pass in three consecutive CI runs; all release documents match the public API; every release smoke run records the relevant Explorer transactions and terminal contract state.
 
 ### Phase V1.2 — Automated Compliance Monitoring
 

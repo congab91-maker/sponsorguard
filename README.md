@@ -11,11 +11,11 @@ SponsorGuard is a GenLayer Studionet escrow for influencer sponsorships. It rele
 | Deployment transaction | [`0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54`](https://explorer-studio.genlayer.com/tx/0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54) (`FINALIZED`, GenVM `SUCCESS`, consensus `Accepted`) |
 | Live app | [sponsorguard-buildgenlayer.vercel.app](https://sponsorguard-buildgenlayer.vercel.app) |
 
-The Explorer currently shows only the successful deployment transaction for this contract. It is not evidence of a completed live campaign.
+Studionet Campaign `#1` is a completed live smoke campaign. It escrowed `0.03 GEN`, accepted a `0.006 GEN` creator bond, evaluated the public compliant fixture three times, released all three tranches, and returned the bond. The verified write sequence is [create](https://explorer-studio.genlayer.com/tx/0xb147d179d337e4b29961c62ef52da6f9d8c7d24d8f0d1d0c778299c30f5fba83), [accept](https://explorer-studio.genlayer.com/tx/0x875008b3037697a3df165993adf7dcf2dc0c875f95070251a70d25514f0a3364), [submit URL](https://explorer-studio.genlayer.com/tx/0x8f65ef577af1d883a7e5e89cc2d89717f6156d79ebf844440fb924de5ca1c798), [baseline](https://explorer-studio.genlayer.com/tx/0xd90dcc0d9fe36b43ffb4c0d2100063fd1d7cee68497cf967b1e5d056b4ab92ef), [recheck 1](https://explorer-studio.genlayer.com/tx/0x07638dac28f427e16bb4d243ac084256e2c8113c0a74f6a8b45052aed7542ecd), and [recheck 2](https://explorer-studio.genlayer.com/tx/0x664e29460083cdd448ea0527a2e019ba8a3c6744a7020bf6b257be1bfac69519). Each adjudication finalized with GenVM `SUCCESS`, consensus `Accepted`, verdict `COMPLIANT`, and action `RELEASE`.
 
 ![SponsorGuard live Studionet interface](docs/sponsorguard-live.png)
 
-_Captured from the public production URL after wallet-compatibility release `c2ae2d0`. The image verifies the deployed interface and configured contract address; it does not claim a completed campaign transaction._
+_Captured from the public production URL after wallet-compatibility release `c2ae2d0`. The image verifies the deployed interface and configured contract address; the Explorer links above provide the transaction evidence._
 
 ## Trust problem
 
@@ -88,7 +88,7 @@ wallet signature -> PENDING -> PROPOSING -> COMMITTING -> REVEALING
                  -> ACCEPTED / READY_TO_FINALIZE -> FINALIZED
 ```
 
-The UI reports success only after `FINALIZED` plus positive execution evidence: either SDK field `txExecutionResultName === FINISHED_WITH_RETURN` or Studionet's raw leader receipt `consensus_data.leader_receipt[0].execution_result === SUCCESS`. It reports evidenced execution errors, canceled transactions, validator/leader timeouts, and RPC exceptions without presenting them as success. If a finalized response contains neither execution representation, the UI labels the result unavailable, keeps the transaction hash, refreshes contract state, and tells the user to verify Explorer instead of falsely reporting a revert. Polling uses `getTransaction`, a 2-second production interval, and a 150-attempt ceiling (approximately five minutes). After a timeout, inspect the transaction hash in Explorer and refresh contract state before deciding whether to retry; do not blindly resubmit a value-bearing transaction.
+The UI reports success only after `FINALIZED` plus positive execution evidence: either SDK field `txExecutionResultName === FINISHED_WITH_RETURN` or Studionet's raw leader receipt `consensus_data.leader_receipt[0].execution_result === SUCCESS`. It reports evidenced execution errors, canceled transactions, validator/leader timeouts, and RPC exceptions without presenting them as success. If a finalized response contains neither execution representation, the UI labels the result unavailable, keeps the transaction hash, refreshes contract state, and tells the user to verify Explorer instead of falsely reporting a revert. Polling uses `getTransaction`, a 2-second production interval, and a 150-attempt ceiling (approximately five minutes). Successful rechecks also reload the selected campaign and all stored `get_check` records so the audit history stays synchronized with the counters. After a timeout, inspect the transaction hash in Explorer and refresh contract state before deciding whether to retry; do not blindly resubmit a value-bearing transaction.
 
 If no contract address is configured, or if the user explicitly enables the switch, the UI enters a prominently labeled offline sandbox. Sandbox fixture controls are hidden in live mode and never count as on-chain evidence.
 
@@ -125,7 +125,7 @@ npm run lint
 npm run build
 ```
 
-The verified local result is 15 passing Vitest tests, including OKX/EIP-1193 connection, Studionet addition/switching, rejection recovery, and both typed and raw Studionet execution-result schemas, a clean Oxlint run, and a successful production build.
+The verified local result is 16 passing Vitest tests, including OKX/EIP-1193 connection, Studionet addition/switching, rejection recovery, both typed and raw Studionet execution-result schemas, and post-recheck audit-history synchronization, plus a clean Oxlint run and successful production build.
 
 ## Deployment notes
 
@@ -138,7 +138,7 @@ The repository intentionally contains no automated contract-deployment script. T
 - The contract stores verdict metadata, not a durable content snapshot or content hash.
 - The policy is fixed per campaign in V1; there is no mutable or versioned policy registry.
 - Local tests mock web, LLM, VM, and frontend SDK behavior. There is no automated end-to-end test against the deployed Studionet contract.
-- Wallet tests use an OKX-shaped EIP-1193 mock. A real value-bearing browser-wallet transaction still requires manual user approval and verification.
+- Automated wallet tests use an OKX-shaped EIP-1193 mock. Campaign `#1` was also completed manually with OKX Wallet, but broad compatibility across wallet versions and devices has not been established.
 - Studionet is a temporary development network and the current deployment should not be treated as production fund custody.
 - The creator safety bond is application-level escrow. It is unrelated to GenLayer protocol validator staking.
 - The production bundle currently exceeds Vite's default 500 kB chunk warning threshold.
