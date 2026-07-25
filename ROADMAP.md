@@ -23,8 +23,8 @@ The React and TypeScript frontend is connected to the deployed Studionet contrac
 - Network: GenLayer Studionet, chain ID `61999`, using the official Studio RPC documented in [Networks & RPCs](https://docs.genlayer.com/developers/networks)
 - Contract verification: GenVM lint, validation, and check commands pass; the validator reports 10 public methods (7 write and 3 view).
 - Contract tests: 18 of 18 tests pass locally.
-- Frontend verification: the production build and ESLint pass. Ten of 11 Vitest tests pass; the polling-retry-exhaustion test currently exceeds its assertion timeout.
-- Deployment verification: the Vercel production deployment belongs to the Bruno (`brunogg`) team and is `Ready`. Its verified production domain is `sponsorguard-buildgenlayer.vercel.app`; the live page returns successfully, displays the exact Studionet contract address, and loads without browser console errors during the recorded smoke check.
+- Frontend verification: 11 of 11 Vitest tests and Oxlint pass, and the production build succeeds.
+- Deployment verification: the production domain `sponsorguard-buildgenlayer.vercel.app` returns successfully and displays the exact Studionet contract address. The deployment account or team is not asserted here because it is not public application evidence.
 - Demo fixtures: compliant, warning, violation, and removed-content HTML fixtures are publicly reachable for sandbox demonstrations.
 
 ### Verified V1 limitations
@@ -36,9 +36,8 @@ The React and TypeScript frontend is connected to the deployed Studionet contrac
 - The contract records verdicts, findings, reasons, actions, and timestamps, but it does not preserve a content snapshot or content hash for later evidence comparison.
 - The public-content fetch is unauthenticated. Private posts, login-gated pages, anti-bot pages, and platform-specific rendering are not supported reliably.
 - The removed-content fixture contains a “404 Not Found” page but returns HTTP 200. The offline sandbox labels it as removed; a live contract evaluation would still depend on the validators interpreting the returned page.
-- The production UI includes clearly labeled sandbox fixture controls alongside live mode. These fixtures demonstrate UI states but are not proof of live consensus outcomes.
-- One frontend test remains failing: the polling retry-exhaustion scenario does not surface its expected error within the test assertion window. This does not prevent the production build, but the reliability suite is not fully green.
-- Release documentation is incomplete: there is no root README, the frontend README is the default Vite document, and the contract README does not list the newer `settle_expired_campaign` method.
+- The reviewed source hides fixture controls in live mode and labels them as offline-only. The currently deployed Vercel build predates that correction and still displays the fixture panel alongside live mode; it must be redeployed before the live UI matches this repository state.
+- The repository now has reviewer-facing root, frontend, and contract documentation with the current API, transaction-finality behavior, and limitations. These local changes are not public until separately reviewed, committed, and pushed.
 - There is no versioned deployment script in the repository. Vercel build configuration is maintained in the linked Vercel project.
 - The frontend production bundle reports a JavaScript chunk above Vite's default 500 kB warning threshold.
 - No verified users, campaigns, partnerships, testimonials, traction, or product analytics are currently available.
@@ -109,7 +108,7 @@ All integrations below are proposals. None should be interpreted as completed or
 
 ### Continuous integration and release tooling
 
-- **Why needed:** Current verification is manual and one frontend test is not green.
+- **Why needed:** Current verification is manual and is not enforced by continuous integration.
 - **Value:** Reproducible evidence for every commit and safer contract/frontend releases.
 - **Architecture impact:** Add GitHub Actions or equivalent for GenVM lint/validation/check, Python tests, frontend tests, lint, build, dependency review, and deployment smoke tests.
 - **Conditions:** Stable CI-compatible GenLayer tooling, pinned runtime versions, protected secrets, and documented release gates.
@@ -128,7 +127,7 @@ Current evidence and future targets are deliberately separated. Future targets a
 | Metric | Current evidence | Future target | Measurement method |
 | --- | --- | --- | --- |
 | Contract verification | GenVM lint, validation, and check pass; 18/18 local contract tests pass | Three consecutive CI runs passing all contract gates before each tagged release | CI artifacts containing tool versions, command output, and commit SHA |
-| Frontend quality gate | Build and ESLint pass; 10/11 Vitest tests pass | 11/11 tests passing in at least three consecutive CI runs | CI test reports and build artifacts |
+| Frontend quality gate | Build and Oxlint pass; 11/11 Vitest tests pass locally | The full frontend gate passes in at least three consecutive CI runs | CI test reports and build artifacts |
 | Deployment availability | Vercel production deployment is `Ready`; the live page returned successfully during the smoke check | At least 99% measured demo availability during a defined 30-day pilot window | External uptime monitor with timestamped results |
 | Application-level contract activity | No successful campaign transaction is currently evidenced; Explorer shows only the deployment transaction | At least 20 successful pilot write transactions across at least 10 test campaigns | Explorer/RPC transaction records grouped by contract method and campaign |
 | Write-transaction success rate | Not yet measured from real campaign writes | At least 95% of user-submitted pilot writes finalize successfully, excluding explicit user rejection | Compare initiated transaction telemetry with finalized execution results and Explorer records |
@@ -144,9 +143,9 @@ Current evidence and future targets are deliberately separated. Future targets a
 
 ### Phase V1.1 — Release Evidence and Reliability
 
-- **Problem:** The project builds and deploys, but one frontend reliability test fails, release documentation is incomplete, deployment is not scripted, and there is no verified live campaign transaction sequence.
+- **Problem:** Local quality gates and reviewer documentation are complete, but there is no CI enforcement, the corrected frontend has not been redeployed, deployment is not scripted, and there is no verified live campaign transaction sequence.
 - **User value:** Judges and pilot users receive reproducible setup instructions, clearer product identity, trustworthy test evidence, and a demonstrably working on-chain journey.
-- **Planned changes:** Correct the polling-timeout test or its asynchronous test harness; add CI; create a root README and deployment runbook; update API documentation; replace the generic page title; add a reproducible Studionet/Vercel deployment procedure; make the removed fixture return a genuine failure state or use an explicit retrieval mock; execute and document a funded end-to-end Studionet smoke campaign.
+- **Planned changes:** Add CI; add a reproducible Studionet/Vercel deployment runbook or script; deploy the reviewed frontend title and live/sandbox separation; make the removed fixture return a genuine failure state or use an explicit retrieval mock; execute and document a funded end-to-end Studionet smoke campaign.
 - **Related integrations:** GitHub Actions or equivalent, GenVM tooling, Vercel, Studionet RPC, and Explorer.
 - **Conditions:** Source changes must be separately approved; funded test wallets, public test content, stable SDK/tool versions, and permission to create application-level transactions are required.
 - **Success metrics:** 18/18 contract tests and 11/11 frontend tests pass in three consecutive CI runs; all release documents match the public API; at least one complete Studionet campaign flow is evidenced by Explorer transactions.

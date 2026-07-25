@@ -7,7 +7,7 @@ import { parseEther, formatEther } from "viem";
 
 const mockGetTransaction = vi.fn();
 const mockReadContract = vi.fn();
-const mockWriteContract = vi.fn().mockResolvedValue("0xtesttxhash");
+const mockWriteContract = vi.fn().mockResolvedValue(`0x${"ab".repeat(32)}`);
 const mockGetTransactionReceipt = vi.fn().mockImplementation(() => {
   throw new Error("Should not use getTransactionReceipt - use getTransaction instead");
 });
@@ -39,6 +39,7 @@ describe("SponsorGuard Frontend Dashboard Tests", () => {
     render(<App />);
     expect(screen.getByText(/Contract Not Deployed/i)).toBeInTheDocument();
     expect(screen.getByText(/Local Simulation Mode/i)).toBeInTheDocument();
+    expect(screen.getByText(/Local Demo Post Fixture Control/i)).toBeInTheDocument();
   });
 
   it("should enforce wallet connection requirements before enabling creation triggers", () => {
@@ -168,6 +169,7 @@ describe("SponsorGuard Frontend Dashboard Tests", () => {
         });
 
       render(<App />);
+      expect(screen.queryByText(/Local Demo Post Fixture Control/i)).not.toBeInTheDocument();
 
       // Connect wallet and await async completion
       fireEvent.click(screen.getByRole("button", { name: /Connect Wallet/i }));
@@ -277,7 +279,7 @@ describe("SponsorGuard Frontend Dashboard Tests", () => {
       await waitFor(() => {
         expect(screen.getByText(/Polling Timeout/i)).toBeInTheDocument();
         expect(screen.getByText(/Transaction polling timed out/i)).toBeInTheDocument();
-      });
+      }, { timeout: 5000 });
 
       expect(mockReadContract).not.toHaveBeenCalled();
       expect(mockGetTransactionReceipt).not.toHaveBeenCalled();

@@ -298,7 +298,7 @@ function App() {
                   };
                   setCampaigns([...campaigns, newCamp]);
                   setSelectedCampaignId(newCamp.campaign_id);
-                  setTxState({ status: "Consensus Finalized successfully!", step: "finalized", hash: "0xsimulatedtxhash111222333444" });
+                  setTxState({ status: "Consensus Finalized successfully!", step: "finalized", hash: "sandbox-simulated-transaction" });
                 }, 800);
               }, 800);
             }, 800);
@@ -753,13 +753,13 @@ function App() {
         </div>
       )}
 
-      {/* Demo Fixtures Selector */}
-      <div className="fixtures-bar">
+      {/* Offline-only demo fixtures; never presented as live contract evidence. */}
+      {simulatedMode && <div className="fixtures-bar">
         <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Info size={18} /> Local Demo Post Fixture Control
         </h3>
         <p style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>
-          Simulates content hosted at the creator's submitted URL. Change the state of the post below to see how the contract validators reach semantic consensus.
+          Offline UI simulation only. These fixtures do not call the deployed contract and are not evidence of validator consensus.
         </p>
         <div className="fixtures-grid">
           <div
@@ -826,7 +826,7 @@ function App() {
             </a>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Main Header */}
       <header className="header" role="banner">
@@ -1036,7 +1036,7 @@ function App() {
                               required
                               value={creatorContentUrl}
                               onChange={(e) => setCreatorContentUrl(e.target.value)}
-                              placeholder="https://my-social.com/post-id (or use fixture selectors above)"
+                              placeholder="https://public.example/post-id"
                             />
                           </div>
                           <button type="submit" className="btn">

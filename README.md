@@ -1,135 +1,141 @@
 # SponsorGuard
 
-> **Automated influencer sponsorship compliance and multi-tranche escrow release on GenLayer.**
+SponsorGuard is a GenLayer Studionet escrow for influencer sponsorships. It releases a three-tranche campaign budget only while a submitted public post remains compliant with the sponsor's written policy, and it applies transparent refund and creator-bond rules when the post is warned, removed, or materially violates that policy.
 
-SponsorGuard provides trustless sponsorship escrow and continuing compliance enforcement for Web3 marketing teams and creator campaigns. A sponsor creates a campaign, defines content disclosure policies, and locks native GEN budget. The nominated creator deposits a 20% safety bond. When the creator submits their public content URL, GenLayer's multi-validator AI consensus evaluates baseline compliance, periodic content availability, and disclosure adherence on-chain, automatically releasing vesting tranches or slashing creator bonds upon policy violations.
+## Verified deployment
 
-```
-┌─────────────────────────┐     ┌─────────────────────────┐     ┌─────────────────────────────┐     ┌─────────────────────────┐
-│  Sponsor Creates        │     │  Creator Accepts        │     │  GenLayer Consensus         │     │  On-Chain Settlement    │
-│  Campaign & Budget      │     │  & Deposits 20% Bond    │     │                             │     │                         │
-│ 1. Define Policy Text   │────>│ 1. Accept Campaign      │────>│ 1. Fetch URL via Web        │────>│ COMPLIANT: Release 1/3  │
-│ 2. Lock GEN Budget      │     │ 2. Submit Content URL   │     │ 2. Evaluate Compliance LLM  │     │ WARNING: Hold Tranche   │
-│ 3. Nominate Creator     │     │ 3. Trigger Baseline     │     │ 3. Verify Action Rules      │     │ VIOLATION: Slash Bond   │
-└─────────────────────────┘     └─────────────────────────┘     └─────────────────────────────┘     └─────────────────────────┘
-```
+| Item | Verified value |
+| --- | --- |
+| Network | GenLayer Studionet (chain ID `61999`) |
+| Contract | [`0x2012c18961Ba71Defb3de61eabCb87866938CC95`](https://explorer-studio.genlayer.com/address/0x2012c18961Ba71Defb3de61eabCb87866938CC95) |
+| Deployment transaction | [`0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54`](https://explorer-studio.genlayer.com/tx/0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54) (`FINALIZED`, GenVM `SUCCESS`, consensus `Accepted`) |
+| Live app | [sponsorguard-buildgenlayer.vercel.app](https://sponsorguard-buildgenlayer.vercel.app) |
 
----
+The Explorer currently shows only the successful deployment transaction for this contract. It is not evidence of a completed live campaign.
 
-## 1. The Problem
+## Trust problem
 
-Web3 brands, DAOs, and marketing agencies spend millions on influencer sponsorships, but post-payment compliance management is severely broken:
+A creator can publish a compliant sponsored post, receive payment, and later remove its disclosure or the post itself. A conventional backend leaves monitoring and enforcement under one party's control. SponsorGuard places the campaign funds, evaluation rules, verdict history, and payout consequences in an Intelligent Contract. GenLayer validators independently fetch the public URL and repeat the evaluation before accepting decision-critical fields.
 
-- **Post-Payment Disclosure Drift:** Creators frequently remove required `#ad` / `#sponsored` disclosures, delete sponsored posts, or unlist video content shortly after receiving initial payments.
-- **Inability of Traditional Contracts to Verify Media Content:** Standard EVM smart contracts (Solidity/Vyper) cannot inspect live social media URLs, verify video descriptions, or determine whether an influencer post violates sponsorship guidelines.
-- **Unilateral Escrow Lockup or Manual Dispute Overhead:** Traditional escrow tools either lock funds unconditionally or require brand managers to manually inspect every post and handle subjective disputes off-chain.
+## V1 flow
 
----
+1. The sponsor calls `create_campaign` with a creator, policy, future deadline, recheck interval, and native GEN budget.
+2. The named creator calls `accept_campaign` with a bond equal to exactly 20% of the budget.
+3. The creator calls `submit_content` with a public HTTP or HTTPS URL.
+4. Any account calls `evaluate_baseline`. The contract fetches the URL with `gl.nondet.web.get`, evaluates it against the stored policy, and stores check sequence 1.
+5. Any account may call `request_recheck` after `next_check_at` and before the campaign deadline. V1 supports at most three total checks; it has no keeper or automatic scheduler.
+6. After expiry, any account may call `settle_expired_campaign` for an eligible nonterminal campaign. Unpaid budget is refunded to the sponsor and any remaining creator bond is returned.
 
-## 2. How It Works
+### Verdict and financial rules
 
-SponsorGuard replaces manual brand auditing with GenLayer's multi-validator AI consensus:
+| Verdict / action | Contract result |
+| --- | --- |
+| `COMPLIANT` / `RELEASE` | Releases the next unpaid tranche and sets `ACTIVE`; check 3 completes the campaign and returns the remaining bond. |
+| `WARNING` / `HOLD` | Releases no tranche and sets `WARNING`; at check 3, all unpaid or held budget returns to the sponsor and the creator's bond is returned. |
+| `MAJOR_VIOLATION` / `TERMINATE` | Terminates, refunds unpaid budget, sends 50% of the bond to the sponsor, and returns 50% to the creator. |
+| `REMOVED` / `TERMINATE` | Terminates, refunds unpaid budget, and sends 100% of the remaining bond to the sponsor. |
 
-1. **Create Campaign:** A Sponsor calls `create_campaign`, nominating a Creator address, setting a 3-tranche native GEN budget, content deadline, recheck interval, and public disclosure policy text.
-2. **Accept Campaign & Deposit Bond:** The nominated Creator calls `accept_campaign`, depositing a mandatory safety bond equal to **20% of the total budget**.
-3. **Submit Content URL:** The Creator posts their sponsored content and calls `submit_content(campaign_id, content_url)`.
-4. **Baseline & Periodic Recheck Consensus:** Anyone can trigger `verify_campaign` or `recheck_campaign`. The GenLayer leader node fetches the public URL via `gl.nondet.web.render` and evaluates content policy alignment using `gl.nondet.exec_prompt`.
-5. **Deterministic Payout & Slashing:** GenLayer validator nodes re-evaluate content findings and enforce strict verdict action rules through `validator_fn`:
-   - **`COMPLIANT` (`RELEASE`):** Unlocks the next 1/3 vesting tranche to the Creator.
-   - **`WARNING` (`HOLD`):** Temporarily pauses tranche release due to minor disclosure gaps, allowing creator remediation within the recheck window.
-   - **`MAJOR_VIOLATION` (`TERMINATE`):** Immediately terminates the campaign, slashes **50% of the Creator's safety bond** to the Sponsor, and refunds remaining unvested budget.
-   - **`REMOVED` (`TERMINATE`):** If post is deleted or unlisted, slashes **100% of the Creator's safety bond** to the Sponsor and refunds unvested budget.
+The first two tranches are `floor(budget / 3)` and the third receives the exact remainder. A warning releases nothing; a later compliant check releases the next unreleased tranche, including a previously held tranche. At the terminal third check, every still-unreleased tranche is refunded to the sponsor. Native-value accounting uses integers throughout.
 
----
+### State transitions
 
-## 3. Why GenLayer Is Essential
+`OPEN -> ACCEPTED -> SUBMITTED -> EVALUATING -> ACTIVE/WARNING -> COMPLETED/TERMINATED`
 
-SponsorGuard relies on native non-deterministic web fetching and multi-model consensus inside the smart contract state machine:
+An open campaign can become `CANCELED`. `EVALUATING` is transient; a failed nondeterministic evaluation restores the prior stable state. Expiry settlement moves an eligible `OPEN`, `ACCEPTED`, `SUBMITTED`, `ACTIVE`, or `WARNING` campaign to `COMPLETED` with the refund rules above.
 
-| Capability | EVM / Solidity | Centralized Oracles | GenLayer |
-|---|---|---|---|
-| Fetch live social media URLs on-chain | ❌ Impossible | ⚠️ Centralized / Trusted | ✅ Native `gl.nondet.web.render()` |
-| Evaluate natural language policy rules | ❌ Impossible | ⚠️ Off-chain server bot | ✅ Native `gl.nondet.exec_prompt()` |
-| Multi-validator AI consensus | ❌ Impossible | ❌ None | ✅ Built-in `run_nondet_unsafe` |
-| Creator bond deposit & slashing logic | ⚠️ Complex multisig | ❌ Platform holds funds | ✅ Native state machine escrow |
-| Automated multi-tranche vesting | ⚠️ Fixed time locks | ❌ Manual support desk | ✅ Dynamic verdict-driven vesting |
+## Why GenLayer is required
 
----
+The core question is contextual: does the current content still comply with the campaign's natural-language disclosure and brand-safety policy? The leader produces a bounded JSON verdict after fetching the public URL. The validator path validates the schema, independently reruns the same web-and-LLM evaluation, and compares the stable decision fields `verdict` and `recommended_action`; explanatory wording may differ. This is substantive consensus, not format-only validation.
 
-## 4. Live Deployment & Evidence
+Inputs are treated as untrusted content, the response body is capped at 30,000 characters, and only four verdict/action combinations are accepted. These safeguards reduce ambiguity and prompt-injection risk but do not make arbitrary web retrieval or LLM judgment infallible.
 
-| Component | Network | Explorer / Address | Details |
-|---|---|---|---|
-| `sponsor_guard.py` | GenLayer Studionet (`61999`) | [`0x2012c18961Ba71Defb3de61eabCb87866938CC95`](https://explorer-studio.genlayer.com/address/0x2012c18961Ba71Defb3de61eabCb87866938CC95) | GenVM `v0.2.16` Intelligent Contract |
-| Deployment Tx | GenLayer Studionet | [`0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54`](https://explorer-studio.genlayer.com/tx/0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54) | Status: `FINALIZED`, GenVM: `SUCCESS` |
-| Web Application | Vercel Production | [sponsorguard-buildgenlayer.vercel.app](https://sponsorguard-buildgenlayer.vercel.app) | React + TypeScript dApp |
-| Pytest Test Suite | Local Simulator | 18 Unit Tests Passing | Covers campaign creation, bond deposits, verdicts & slashing |
+## Contract interface
 
----
+### Write methods
 
-## 5. Intelligent Contract Architecture
-
-### Storage Mappings (`contracts/sponsor_guard.py`)
-```python
-next_campaign_id: u256                          # Campaign ID counter
-campaign_sponsor: TreeMap[u256, Address]        # Campaign ID -> Sponsor address
-campaign_creator: TreeMap[u256, Address]        # Campaign ID -> Creator address
-campaign_budget: TreeMap[u256, u256]           # Total budget in native GEN wei
-campaign_bond: TreeMap[u256, u256]             # Required 20% creator safety bond
-campaign_status: TreeMap[u256, str]             # OPEN | ACCEPTED | SUBMITTED | ACTIVE | COMPLETED | TERMINATED
-campaign_content_url: TreeMap[u256, str]        # Public content URL submitted by creator
-campaign_tranches_released: TreeMap[u256, u256] # Number of tranches released (0 to 3)
+```text
+create_campaign(creator: Address, policy: str, content_deadline: u256, recheck_interval: u256) -> u256  [payable]
+cancel_campaign(campaign_id: u256) -> None
+accept_campaign(campaign_id: u256) -> None  [payable]
+submit_content(campaign_id: u256, content_url: str) -> None
+evaluate_baseline(campaign_id: u256) -> None
+request_recheck(campaign_id: u256) -> None
+settle_expired_campaign(campaign_id: u256) -> None
 ```
 
-### API Reference
+### View methods
 
-#### Write Methods
-- **`create_campaign(creator: Address, policy: str, content_deadline: u256, recheck_interval: u256) -> u256`** `@gl.public.write.payable`
-  - Locks total campaign budget in native GEN wei and initializes campaign in `OPEN` status.
-
-- **`accept_campaign(campaign_id: u256)`** `@gl.public.write.payable`
-  - Callable by designated `creator`. Requires exact **20% safety bond deposit**.
-
-- **`submit_content(campaign_id: u256, content_url: str)`** `@gl.public.write`
-  - Stores public content URL and updates status to `SUBMITTED`.
-
-- **`verify_campaign(campaign_id: u256)`** `@gl.public.write`
-  - Triggers baseline web fetch (`gl.nondet.web.render`) and LLM compliance check (`gl.nondet.exec_prompt`).
-
-- **`recheck_campaign(campaign_id: u256)`** `@gl.public.write`
-  - Triggers periodic recheck of active content URL after recheck interval timestamp.
-
-- **`cancel_campaign(campaign_id: u256)`** `@gl.public.write`
-  - Allows sponsor to cancel an `OPEN` (unaccepted) campaign with full budget refund.
-
-#### View Methods
-- **`get_campaign(campaign_id: u256) -> str`** `@gl.public.view`: Returns JSON representation of campaign state.
-- **`get_campaign_count() -> u256`** `@gl.public.view`: Returns total count of campaigns created.
-
----
-
-## 6. Development & Verification Guide
-
-### Contract Lint & Pytest Suite
-```bash
-# 1. Run GenVM semantic lint check
-python -m genvm_lint check contracts/sponsor_guard.py
-
-# 2. Run unit test suite (18 tests)
-pytest -v
+```text
+get_campaign(campaign_id: u256) -> str
+get_check(campaign_id: u256, sequence: u256) -> str
+get_campaign_count() -> u256
 ```
 
-### Frontend Development & Build
-```bash
-# Navigate to frontend directory
+The two string-returning views serialize JSON for the frontend.
+
+## Frontend integration
+
+The React application uses `genlayer-js` and the exported `studionet` chain. When `VITE_SPONSOR_GUARD_ADDRESS` is configured, wallet connection obtains the active account with `getAddresses()`, reads the three view methods, and sends all seven write methods to the configured contract. GEN inputs use `viem` `parseEther`/`formatEther` and `bigint`; there is no runtime fallback wallet or contract address.
+
+Every live write follows this lifecycle:
+
+```text
+wallet signature -> PENDING -> PROPOSING -> COMMITTING -> REVEALING
+                 -> ACCEPTED / READY_TO_FINALIZE -> FINALIZED
+```
+
+The UI reports success only when the transaction is `FINALIZED` and `txExecutionResultName` is `FINISHED_WITH_RETURN`. It reports contract execution errors, canceled transactions, validator/leader timeouts, and RPC exceptions without refreshing local campaign state. Polling uses `getTransaction`, a 2-second production interval, and a 150-attempt ceiling (approximately five minutes). After a timeout, inspect the transaction hash in Explorer and refresh contract state before deciding whether to retry; do not blindly resubmit a value-bearing transaction.
+
+If no contract address is configured, or if the user explicitly enables the switch, the UI enters a prominently labeled offline sandbox. Sandbox fixture controls are hidden in live mode and never count as on-chain evidence.
+
+## Local setup
+
+### Contract checks
+
+From the repository root, using the existing Python environment:
+
+```powershell
+venv\Scripts\python.exe -m pytest -q
+venv\Scripts\genvm-lint.exe lint contracts\sponsor_guard.py
+venv\Scripts\genvm-lint.exe validate contracts\sponsor_guard.py
+venv\Scripts\genvm-lint.exe check contracts\sponsor_guard.py
+```
+
+The verified local result is 18 passing contract tests plus passing GenVM lint, validation, and check gates.
+
+### Frontend
+
+```powershell
 cd frontend
-
-# Install node dependencies
 npm install
-
-# Run development server
+Copy-Item .env.example .env
+# Set VITE_SPONSOR_GUARD_ADDRESS to a real deployed contract address.
 npm run dev
+```
 
-# Verify production build
+Quality gates:
+
+```powershell
+npm test -- --run
+npm run lint
 npm run build
 ```
+
+The verified local result is 11 passing Vitest tests, a clean Oxlint run, and a successful production build.
+
+## Deployment notes
+
+The repository intentionally contains no automated contract-deployment script. The verified contract was deployed through GenLayer Studio to Studionet. A future deployment must use the current Studio-generated template and current official SDK/network configuration, wait for finality, verify execution success, then update the frontend environment and reviewer links with the new real address. Vercel is configured to build the `frontend` directory; no deployment is performed by the verification task documented here.
+
+## Trust boundaries and V1 limitations
+
+- Only publicly retrievable HTTP/HTTPS content is suitable. Private, login-gated, anti-bot, and heavily client-rendered pages may fail.
+- Rechecks are permissionless but manually triggered and timestamp-gated; continuous scheduling and randomized monitoring are not implemented.
+- The contract stores verdict metadata, not a durable content snapshot or content hash.
+- The policy is fixed per campaign in V1; there is no mutable or versioned policy registry.
+- Local tests mock web, LLM, VM, and frontend SDK behavior. There is no automated end-to-end test against the deployed Studionet contract.
+- Studionet is a temporary development network and the current deployment should not be treated as production fund custody.
+- The creator safety bond is application-level escrow. It is unrelated to GenLayer protocol validator staking.
+- The production bundle currently exceeds Vite's default 500 kB chunk warning threshold.
+
+See [ROADMAP.md](ROADMAP.md) for evidence-separated future work and [contracts/README.md](contracts/README.md) for contract-specific behavior.
