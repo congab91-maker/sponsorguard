@@ -13,6 +13,10 @@ SponsorGuard is a GenLayer Studionet escrow for influencer sponsorships. It rele
 
 The Explorer currently shows only the successful deployment transaction for this contract. It is not evidence of a completed live campaign.
 
+![SponsorGuard live Studionet interface](docs/sponsorguard-live.png)
+
+_Captured from the public production URL after release `d1b98a5`. The image verifies the deployed interface and configured contract address; it does not claim a completed campaign transaction._
+
 ## Trust problem
 
 A creator can publish a compliant sponsored post, receive payment, and later remove its disclosure or the post itself. A conventional backend leaves monitoring and enforcement under one party's control. SponsorGuard places the campaign funds, evaluation rules, verdict history, and payout consequences in an Intelligent Contract. GenLayer validators independently fetch the public URL and repeat the evaluation before accepting decision-critical fields.
