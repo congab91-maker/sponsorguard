@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { TransactionStatus, ExecutionResult, type TransactionHash } from "genlayer-js/types";
-import { parseEther, formatEther } from "viem";
+import { parseEther, formatEther, type EIP1193Provider } from "viem";
 import {
   Shield,
   FileText,
@@ -20,6 +20,60 @@ import {
 import "./App.css";
 
 type ClientType = ReturnType<typeof createClient>;
+type InjectedWalletProvider = EIP1193Provider & {
+  isOkxWallet?: boolean;
+  providers?: InjectedWalletProvider[];
+};
+type WalletWindow = Window & {
+  ethereum?: InjectedWalletProvider;
+  okxwallet?: InjectedWalletProvider;
+};
+
+const STUDIONET_CHAIN_ID = `0x${studionet.id.toString(16)}` as `0x${string}`;
+
+const getInjectedWalletProvider = (): InjectedWalletProvider | null => {
+  const walletWindow = window as WalletWindow;
+  const injectedProviders = walletWindow.ethereum?.providers ?? [];
+  return (
+    walletWindow.okxwallet ??
+    injectedProviders.find((provider) => provider.isOkxWallet) ??
+    walletWindow.ethereum ??
+    null
+  );
+};
+
+const ensureStudionet = async (provider: InjectedWalletProvider) => {
+  const currentChainId = await provider.request({ method: "eth_chainId" });
+  if (currentChainId === STUDIONET_CHAIN_ID) return;
+
+  try {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: STUDIONET_CHAIN_ID }]
+    });
+  } catch (error) {
+    const rpcError = error as { code?: number; message?: string };
+    const needsNetwork = rpcError.code === 4902 || /unknown|unrecognized|not added/i.test(rpcError.message ?? "");
+    if (!needsNetwork) throw error;
+
+    await provider.request({
+      method: "wallet_addEthereumChain",
+      params: [{
+        chainId: STUDIONET_CHAIN_ID,
+        chainName: studionet.name,
+        nativeCurrency: studionet.nativeCurrency,
+        rpcUrls: studionet.rpcUrls.default.http,
+        blockExplorerUrls: studionet.blockExplorers?.default.url
+          ? [studionet.blockExplorers.default.url]
+          : []
+      }]
+    });
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: STUDIONET_CHAIN_ID }]
+    });
+  }
+};
 
 // Interface for Campaign
 interface Campaign {
@@ -56,6 +110,7 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<"sponsor" | "creator" | "auditor">("sponsor");
   const [client, setClient] = useState<ClientType | null>(null);
+  const [walletProvider, setWalletProvider] = useState<InjectedWalletProvider | null>(null);
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
   const [simulatedMode, setSimulatedMode] = useState(!isContractConfigured);
@@ -88,14 +143,15 @@ function App() {
       try {
         const c = createClient({
           chain: studionet,
-          account: (walletAddress && walletAddress.startsWith("0x")) ? (walletAddress as `0x${string}`) : undefined
+          account: (walletAddress && walletAddress.startsWith("0x")) ? (walletAddress as `0x${string}`) : undefined,
+          provider: walletProvider ?? undefined
         });
         setClient(c);
       } catch (err) {
         console.error("Failed to initialize genlayer-js client", err);
       }
     }
-  }, [isContractConfigured, simulatedMode, walletAddress]);
+  }, [isContractConfigured, simulatedMode, walletAddress, walletProvider]);
 
   // Connect Wallet simulation or real
   const handleConnectWallet = async () => {
@@ -104,22 +160,41 @@ function App() {
       setWalletAddress("Offline Sandbox Account");
       return;
     }
-    if (!client) return;
     try {
       setTxState({ status: "Connecting to wallet...", step: "wallet" });
-      await client.connect("studionet");
+      const provider = getInjectedWalletProvider();
+      if (!provider) {
+        throw new Error("No compatible browser wallet was detected. Install or unlock OKX Wallet or another EIP-1193 wallet.");
+      }
+
+      const accounts = await provider.request({ method: "eth_requestAccounts" });
+      const address = Array.isArray(accounts) ? accounts[0] : undefined;
+      if (typeof address !== "string" || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        throw new Error("The wallet did not return a valid EVM account.");
+      }
+
+      await ensureStudionet(provider);
+
+      const connectedClient = createClient({
+        chain: studionet,
+        account: address as `0x${string}`,
+        provider
+      });
+      setWalletProvider(provider);
+      setClient(connectedClient);
+      setWalletAddress(address);
       setIsWalletConnected(true);
-      // Get address from SDK
-      const addrs = await client.getAddresses();
-      const addr = addrs[0];
-      setWalletAddress(addr);
       setTxState({ status: "", step: "none" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const errorMessage = err instanceof Error ? err.message : "The wallet connection request failed.";
+      setIsWalletConnected(false);
+      setWalletAddress("");
+      setWalletProvider(null);
       setTxState({
         status: "Connection Rejected",
         step: "error",
-        errorMsg: err.message || "User rejected wallet connection signature."
+        errorMsg: errorMessage
       });
     }
   };
@@ -738,6 +813,9 @@ function App() {
           </p>
           <p style={{ marginTop: "6px", fontSize: "11px", color: "var(--color-text-secondary)" }}>
             <strong>Requirements for Live Mode:</strong> Any submitted content URL must be a publicly accessible HTTP/HTTPS URL (e.g. a public Vercel page or Gist) so that GenLayer Studionet validators can fetch and evaluate its contents.
+          </p>
+          <p style={{ marginTop: "6px", fontSize: "11px", color: "var(--color-text-secondary)" }}>
+            <strong>Wallet support:</strong> OKX Wallet and standard EIP-1193 browser wallets. SponsorGuard does not require MetaMask Snaps.
           </p>
           <div style={{ marginTop: "8px" }}>
             <label style={{ fontSize: "12px", fontWeight: "bold", display: "inline-flex", alignItems: "center", cursor: "pointer" }}>

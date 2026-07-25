@@ -24,7 +24,7 @@ The React and TypeScript frontend is connected to the deployed Studionet contrac
 - Network: GenLayer Studionet, chain ID `61999`, using the official Studio RPC documented in [Networks & RPCs](https://docs.genlayer.com/developers/networks)
 - Contract verification: GenVM lint, validation, and check commands pass; the validator reports 10 public methods (7 write and 3 view).
 - Contract tests: 18 of 18 tests pass locally.
-- Frontend verification: 11 of 11 Vitest tests and Oxlint pass, and the production build succeeds.
+- Frontend verification: 14 of 14 Vitest tests and Oxlint pass, and the production build succeeds. Wallet coverage includes an OKX-shaped EIP-1193 provider, Studionet addition/switching, and safe recovery from a rejected connection.
 - Deployment verification: the production domain `sponsorguard-buildgenlayer.vercel.app` returns successfully and displays the exact Studionet contract address. The deployment account or team is not asserted here because it is not public application evidence.
 - Demo fixtures: compliant, warning, violation, and removed-content HTML fixtures are publicly reachable for sandbox demonstrations.
 
@@ -97,8 +97,8 @@ All integrations below are proposals. None should be interpreted as completed or
 
 - **Why needed:** Multi-stage GenLayer transactions and wallet funding can be unfamiliar to first-time users.
 - **Value:** Fewer abandoned flows, clearer transaction recovery, and more reliable account/network selection.
-- **Architecture impact:** Add explicit chain switching where supported, wallet-provider compatibility testing, resumable transaction status, error categorization, and transaction-history links.
-- **Conditions:** Confirmed wallet support for the target GenLayer network, provider testing, and stable SDK APIs.
+- **Architecture impact:** V1 now performs standard EIP-1193 account discovery and Studionet chain switching for OKX and injected browser wallets. Future work can add an EIP-6963 wallet chooser, account/chain change listeners, resumable transaction status, richer error categorization, and transaction-history links.
+- **Conditions:** Real-device compatibility testing across supported wallet versions, stable SDK/provider APIs, and explicit UX for choosing among multiple simultaneously injected wallets.
 
 ### Indexing, analytics, and observability
 
@@ -128,7 +128,7 @@ Current evidence and future targets are deliberately separated. Future targets a
 | Metric | Current evidence | Future target | Measurement method |
 | --- | --- | --- | --- |
 | Contract verification | GenVM lint, validation, and check pass; 18/18 local contract tests pass | Three consecutive CI runs passing all contract gates before each tagged release | CI artifacts containing tool versions, command output, and commit SHA |
-| Frontend quality gate | Build and Oxlint pass; 11/11 Vitest tests pass locally | The full frontend gate passes in at least three consecutive CI runs | CI test reports and build artifacts |
+| Frontend quality gate | Build and Oxlint pass; 14/14 Vitest tests pass locally | The full frontend gate passes in at least three consecutive CI runs | CI test reports and build artifacts |
 | Deployment availability | Vercel production deployment is `Ready`; the live page returned successfully during the smoke check | At least 99% measured demo availability during a defined 30-day pilot window | External uptime monitor with timestamped results |
 | Application-level contract activity | No successful campaign transaction is currently evidenced; Explorer shows only the deployment transaction | At least 20 successful pilot write transactions across at least 10 test campaigns | Explorer/RPC transaction records grouped by contract method and campaign |
 | Write-transaction success rate | Not yet measured from real campaign writes | At least 95% of user-submitted pilot writes finalize successfully, excluding explicit user rejection | Compare initiated transaction telemetry with finalized execution results and Explorer records |
@@ -149,7 +149,7 @@ Current evidence and future targets are deliberately separated. Future targets a
 - **Planned changes:** Add CI; add a reproducible Studionet contract-deployment runbook or script; make the removed fixture return a genuine failure state or use an explicit retrieval mock; execute and document a funded end-to-end Studionet smoke campaign.
 - **Related integrations:** GitHub Actions or equivalent, GenVM tooling, Vercel, Studionet RPC, and Explorer.
 - **Conditions:** Source changes must be separately approved; funded test wallets, public test content, stable SDK/tool versions, and permission to create application-level transactions are required.
-- **Success metrics:** 18/18 contract tests and 11/11 frontend tests pass in three consecutive CI runs; all release documents match the public API; at least one complete Studionet campaign flow is evidenced by Explorer transactions.
+- **Success metrics:** 18/18 contract tests and 14/14 frontend tests pass in three consecutive CI runs; all release documents match the public API; at least one complete Studionet campaign flow is evidenced by Explorer transactions.
 
 ### Phase V1.2 — Automated Compliance Monitoring
 

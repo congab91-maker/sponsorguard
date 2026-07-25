@@ -79,7 +79,7 @@ The two string-returning views serialize JSON for the frontend.
 
 ## Frontend integration
 
-The React application uses `genlayer-js` and the exported `studionet` chain. When `VITE_SPONSOR_GUARD_ADDRESS` is configured, wallet connection obtains the active account with `getAddresses()`, reads the three view methods, and sends all seven write methods to the configured contract. GEN inputs use `viem` `parseEther`/`formatEther` and `bigint`; there is no runtime fallback wallet or contract address.
+The React application uses `genlayer-js` and the exported `studionet` chain. When `VITE_SPONSOR_GUARD_ADDRESS` is configured, wallet connection discovers OKX or another injected EIP-1193 provider, requests an account, adds or switches to Studionet, and passes that exact provider/account pair to the write client. It does not call MetaMask Snaps. The app reads the three view methods and sends all seven write methods to the configured contract. GEN inputs use `viem` `parseEther`/`formatEther` and `bigint`; there is no runtime fallback wallet or contract address.
 
 Every live write follows this lifecycle:
 
@@ -125,7 +125,7 @@ npm run lint
 npm run build
 ```
 
-The verified local result is 11 passing Vitest tests, a clean Oxlint run, and a successful production build.
+The verified local result is 14 passing Vitest tests, including OKX/EIP-1193 connection, Studionet addition/switching, and rejection recovery, a clean Oxlint run, and a successful production build.
 
 ## Deployment notes
 
@@ -138,6 +138,7 @@ The repository intentionally contains no automated contract-deployment script. T
 - The contract stores verdict metadata, not a durable content snapshot or content hash.
 - The policy is fixed per campaign in V1; there is no mutable or versioned policy registry.
 - Local tests mock web, LLM, VM, and frontend SDK behavior. There is no automated end-to-end test against the deployed Studionet contract.
+- Wallet tests use an OKX-shaped EIP-1193 mock. A real value-bearing browser-wallet transaction still requires manual user approval and verification.
 - Studionet is a temporary development network and the current deployment should not be treated as production fund custody.
 - The creator safety bond is application-level escrow. It is unrelated to GenLayer protocol validator staking.
 - The production bundle currently exceeds Vite's default 500 kB chunk warning threshold.

@@ -8,6 +8,8 @@ import { parseEther, formatEther } from "viem";
 const mockGetTransaction = vi.fn();
 const mockReadContract = vi.fn();
 const mockWriteContract = vi.fn().mockResolvedValue(`0x${"ab".repeat(32)}`);
+const mockWalletRequest = vi.fn();
+const TEST_WALLET_ADDRESS = "0x1111111111111111111111111111111111111111";
 const mockGetTransactionReceipt = vi.fn().mockImplementation(() => {
   throw new Error("Should not use getTransactionReceipt - use getTransaction instead");
 });
@@ -29,6 +31,7 @@ describe("SponsorGuard Frontend Dashboard Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("VITE_SPONSOR_GUARD_ADDRESS", "");
+    Object.defineProperty(window, "okxwallet", { configurable: true, value: undefined });
   });
 
   afterEach(() => {
@@ -137,6 +140,15 @@ describe("SponsorGuard Frontend Dashboard Tests", () => {
   describe("Live Mode Polling & API Schema Verification", () => {
     beforeEach(() => {
       vi.stubEnv("VITE_SPONSOR_GUARD_ADDRESS", "0xdc18aa3db8bc91a6e390a35e7d0811240F3ab001");
+      mockWalletRequest.mockImplementation(({ method }: { method: string }) => {
+        if (method === "eth_requestAccounts") return Promise.resolve([TEST_WALLET_ADDRESS]);
+        if (method === "eth_chainId") return Promise.resolve("0xf22f");
+        return Promise.resolve(null);
+      });
+      Object.defineProperty(window, "okxwallet", {
+        configurable: true,
+        value: { request: (...args: unknown[]) => mockWalletRequest(...args) }
+      });
       mockReadContract.mockResolvedValue(JSON.stringify({
         campaign_id: 1,
         sponsor: "0x1111111111111111111111111111111111111111",
@@ -153,6 +165,57 @@ describe("SponsorGuard Frontend Dashboard Tests", () => {
         next_check_at: 0,
         warning_held: false
       }));
+    });
+
+    it("should connect OKX through standard EIP-1193 without requesting MetaMask Snaps", async () => {
+      render(<App />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Connect Wallet/i }));
+      await waitFor(() => {
+        expect(screen.queryByRole("button", { name: /Connect Wallet/i })).not.toBeInTheDocument();
+      });
+
+      const requestedMethods = mockWalletRequest.mock.calls.map(([request]) => request.method);
+      expect(requestedMethods).toContain("eth_requestAccounts");
+      expect(requestedMethods).toContain("eth_chainId");
+      expect(requestedMethods).not.toContain("wallet_getSnaps");
+      expect(screen.getByText(/0x1111\.\.\.1111/i)).toBeInTheDocument();
+    });
+
+    it("should add and switch to Studionet when OKX does not know the network", async () => {
+      let switchAttempts = 0;
+      mockWalletRequest.mockImplementation(({ method }: { method: string }) => {
+        if (method === "eth_requestAccounts") return Promise.resolve([TEST_WALLET_ADDRESS]);
+        if (method === "eth_chainId") return Promise.resolve("0x1");
+        if (method === "wallet_switchEthereumChain" && switchAttempts++ === 0) {
+          return Promise.reject({ code: 4902, message: "Unknown chain" });
+        }
+        return Promise.resolve(null);
+      });
+
+      render(<App />);
+      fireEvent.click(screen.getByRole("button", { name: /Connect Wallet/i }));
+      await waitFor(() => {
+        expect(screen.queryByRole("button", { name: /Connect Wallet/i })).not.toBeInTheDocument();
+      });
+
+      const requestedMethods = mockWalletRequest.mock.calls.map(([request]) => request.method);
+      expect(requestedMethods).toContain("wallet_addEthereumChain");
+      expect(requestedMethods.filter((method) => method === "wallet_switchEthereumChain")).toHaveLength(2);
+    });
+
+    it("should remain rendered and disconnected when the wallet rejects connection", async () => {
+      mockWalletRequest.mockRejectedValue(new Error("User rejected the request"));
+      render(<App />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Connect Wallet/i }));
+      await waitFor(() => {
+        expect(screen.getByText(/Connection Rejected/i)).toBeInTheDocument();
+        expect(screen.getByText(/User rejected the request/i)).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole("button", { name: /Connect Wallet/i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /SponsorGuard MVP/i })).toBeInTheDocument();
     });
 
     it("should successfully poll and finalize live transaction and refresh state", async () => {

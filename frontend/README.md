@@ -38,7 +38,7 @@ The committed `.env.example` intentionally leaves the value empty. The applicati
 
 ### Sponsor
 
-- Connect a Studionet-compatible wallet.
+- Connect OKX Wallet or another injected EIP-1193 browser wallet. The frontend requests the account, adds or switches to Studionet, and supplies the selected provider directly to `genlayer-js`; it does not require MetaMask Snaps.
 - Create and fund a campaign through `create_campaign`.
 - Cancel an untouched `OPEN` campaign through `cancel_campaign`.
 - Read all campaigns through `get_campaign_count` and `get_campaign`.
@@ -87,7 +87,7 @@ npm run build
 
 Current verified local results:
 
-- 11/11 Vitest tests pass.
+- 14/14 Vitest tests pass, including OKX/EIP-1193 connection, Studionet addition/switching, and safe rejection recovery.
 - Oxlint passes.
 - The TypeScript/Vite production build succeeds.
 - Vite reports a bundle-size warning because the main JavaScript chunk is above 500 kB; this is documented, not hidden.
