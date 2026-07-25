@@ -75,6 +75,59 @@ const ensureStudionet = async (provider: InjectedWalletProvider) => {
   }
 };
 
+type ExecutionOutcome = {
+  state: "success" | "error" | "unknown";
+  error?: string;
+};
+
+const getExecutionOutcome = (transaction: unknown): ExecutionOutcome => {
+  const tx = transaction as {
+    txExecutionResultName?: string;
+    data?: { error?: unknown };
+    consensus_data?: {
+      leader_receipt?: Array<{
+        execution_result?: string;
+        genvm_result?: {
+          error_description?: unknown;
+          raw_error?: unknown;
+          stderr?: unknown;
+        };
+      }>;
+    };
+  };
+
+  if (tx.txExecutionResultName === ExecutionResult.FINISHED_WITH_RETURN) {
+    return { state: "success" };
+  }
+  if (tx.txExecutionResultName === ExecutionResult.FINISHED_WITH_ERROR) {
+    return {
+      state: "error",
+      error: typeof tx.data?.error === "string" ? tx.data.error : "Contract execution reverted."
+    };
+  }
+
+  // Studionet currently exposes GenVM execution through the raw consensus receipt
+  // even when txExecutionResultName is omitted by getTransaction().
+  const leaderReceipt = tx.consensus_data?.leader_receipt?.[0];
+  if (leaderReceipt?.execution_result === "SUCCESS") {
+    return { state: "success" };
+  }
+  if (leaderReceipt?.execution_result) {
+    const rawError =
+      leaderReceipt.genvm_result?.error_description ??
+      leaderReceipt.genvm_result?.raw_error ??
+      leaderReceipt.genvm_result?.stderr;
+    return {
+      state: "error",
+      error: typeof rawError === "string" && rawError.trim()
+        ? rawError
+        : `Contract execution returned ${leaderReceipt.execution_result}.`
+    };
+  }
+
+  return { state: "unknown" };
+};
+
 // Interface for Campaign
 interface Campaign {
   campaign_id: number;
@@ -282,19 +335,30 @@ function App() {
         setTxState({ status: statusMsg, step, hash });
 
         if (currentStatus === TransactionStatus.FINALIZED) {
-          if (tx.txExecutionResultName === ExecutionResult.FINISHED_WITH_RETURN) {
+          const execution = getExecutionOutcome(tx);
+          if (execution.state === "success") {
             setTxState({ status: `${actionName} Completed Successfully!`, step: "finalized", hash });
             fetchCampaignDataReal();
             return true;
-          } else {
-            const errStr = typeof tx.data?.error === "string" ? tx.data.error : "Contract execution reverted.";
+          }
+          if (execution.state === "error") {
             setTxState({
               status: "Execution Error",
               step: "error",
-              errorMsg: errStr
+              hash,
+              errorMsg: execution.error
             });
             return false;
           }
+
+          setTxState({
+            status: "Transaction Finalized — Execution Result Unavailable",
+            step: "finalized",
+            hash,
+            errorMsg: "Studionet did not return an execution result. Contract state was refreshed; verify the transaction in Explorer before retrying."
+          });
+          fetchCampaignDataReal();
+          return false;
         }
 
         if ([
@@ -305,6 +369,7 @@ function App() {
           setTxState({
             status: "Transaction Failed",
             step: "error",
+            hash,
             errorMsg: `Transaction reached failed status: ${currentStatus}`
           });
           return false;
@@ -317,6 +382,7 @@ function App() {
         setTxState({
           status: "Polling Timeout",
           step: "error",
+          hash,
           errorMsg: "Transaction polling timed out."
         });
       }

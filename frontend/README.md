@@ -66,12 +66,12 @@ PENDING -> PROPOSING -> COMMITTING -> REVEALING
         -> ACCEPTED / READY_TO_FINALIZE -> FINALIZED
 ```
 
-Appeal commit/reveal states are also rendered if returned by the network. `UNDETERMINED` remains pending and is polled again. A transaction is shown as successful only when both conditions hold:
+Appeal commit/reveal states are also rendered if returned by the network. `UNDETERMINED` remains pending and is polled again. A transaction is shown as successful only after `FINALIZED` plus one supported positive execution representation:
 
-1. `statusName === FINALIZED`
-2. `txExecutionResultName === FINISHED_WITH_RETURN`
+1. SDK-normalized: `txExecutionResultName === FINISHED_WITH_RETURN`; or
+2. Studionet raw receipt: `consensus_data.leader_receipt[0].execution_result === SUCCESS`.
 
-`FINISHED_WITH_ERROR` is shown as a contract execution failure and does not trigger a state refresh. `CANCELED`, `VALIDATORS_TIMEOUT`, and `LEADER_TIMEOUT` are terminal failures. RPC or wallet exceptions are surfaced with the action name. Polling stops after 150 attempts at a 2-second production interval and displays `Polling Timeout`.
+`FINISHED_WITH_ERROR` and a raw non-success leader execution are shown as contract execution failures. If both execution representations are absent after finalization, the UI keeps the hash, refreshes contract state, and labels the result unavailable rather than claiming a revert. `CANCELED`, `VALIDATORS_TIMEOUT`, and `LEADER_TIMEOUT` are terminal failures. RPC or wallet exceptions are surfaced with the action name. Polling stops after 150 attempts at a 2-second production interval and displays `Polling Timeout`.
 
 After an execution failure, correct the contract input or state before retrying. After an RPC/polling timeout, use the displayed hash to inspect Explorer and refresh the campaign before resubmitting, especially for value-bearing calls. The frontend intentionally does not treat submission or consensus acceptance as final success.
 
@@ -87,7 +87,7 @@ npm run build
 
 Current verified local results:
 
-- 14/14 Vitest tests pass, including OKX/EIP-1193 connection, Studionet addition/switching, and safe rejection recovery.
+- 15/15 Vitest tests pass, including OKX/EIP-1193 connection, Studionet addition/switching, safe rejection recovery, and both transaction execution-result schemas returned by the SDK/Studionet.
 - Oxlint passes.
 - The TypeScript/Vite production build succeeds.
 - Vite reports a bundle-size warning because the main JavaScript chunk is above 500 kB; this is documented, not hidden.

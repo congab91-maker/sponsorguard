@@ -261,6 +261,37 @@ describe("SponsorGuard Frontend Dashboard Tests", () => {
       expect(mockGetTransactionReceipt).not.toHaveBeenCalled();
     });
 
+    it("should recognize a successful Studionet raw consensus receipt when the SDK omits txExecutionResultName", async () => {
+      mockGetTransaction.mockResolvedValue({
+        statusName: TransactionStatus.FINALIZED,
+        consensus_data: {
+          leader_receipt: [{
+            execution_result: "SUCCESS",
+            genvm_result: { stderr: "", raw_error: null, error_description: null }
+          }]
+        }
+      });
+
+      render(<App />);
+      fireEvent.click(screen.getByRole("button", { name: /Connect Wallet/i }));
+      await waitFor(() => {
+        expect(screen.queryByRole("button", { name: /Connect Wallet/i })).not.toBeInTheDocument();
+      });
+
+      fireEvent.change(screen.getByLabelText(/Creator Wallet Address/i), { target: { value: "0x2222222222222222222222222222222222222222" } });
+      fireEvent.change(screen.getByLabelText(/Campaign Policy/i), { target: { value: "Disclosure ad hashtag required" } });
+      fireEvent.change(screen.getByLabelText(/Budget/i), { target: { value: "0.03" } });
+
+      mockReadContract.mockClear();
+      fireEvent.click(screen.getByRole("button", { name: /Deploy & Fund/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Completed Successfully/i)).toBeInTheDocument();
+      });
+      expect(screen.queryByText(/Execution Error/i)).not.toBeInTheDocument();
+      expect(mockReadContract).toHaveBeenCalled();
+    });
+
     it("should show execution error and not refresh state when live transaction execution fails", async () => {
       mockGetTransaction.mockResolvedValue({
         statusName: TransactionStatus.FINALIZED,
@@ -285,6 +316,7 @@ describe("SponsorGuard Frontend Dashboard Tests", () => {
       await waitFor(() => {
         expect(screen.getByText(/Execution Error/i)).toBeInTheDocument();
         expect(screen.getByText(/Execution Reverted due to custom checks/i)).toBeInTheDocument();
+        expect(screen.getByText(/0xabababab/i)).toBeInTheDocument();
       });
 
       expect(mockReadContract).not.toHaveBeenCalled();

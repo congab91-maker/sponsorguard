@@ -88,7 +88,7 @@ wallet signature -> PENDING -> PROPOSING -> COMMITTING -> REVEALING
                  -> ACCEPTED / READY_TO_FINALIZE -> FINALIZED
 ```
 
-The UI reports success only when the transaction is `FINALIZED` and `txExecutionResultName` is `FINISHED_WITH_RETURN`. It reports contract execution errors, canceled transactions, validator/leader timeouts, and RPC exceptions without refreshing local campaign state. Polling uses `getTransaction`, a 2-second production interval, and a 150-attempt ceiling (approximately five minutes). After a timeout, inspect the transaction hash in Explorer and refresh contract state before deciding whether to retry; do not blindly resubmit a value-bearing transaction.
+The UI reports success only after `FINALIZED` plus positive execution evidence: either SDK field `txExecutionResultName === FINISHED_WITH_RETURN` or Studionet's raw leader receipt `consensus_data.leader_receipt[0].execution_result === SUCCESS`. It reports evidenced execution errors, canceled transactions, validator/leader timeouts, and RPC exceptions without presenting them as success. If a finalized response contains neither execution representation, the UI labels the result unavailable, keeps the transaction hash, refreshes contract state, and tells the user to verify Explorer instead of falsely reporting a revert. Polling uses `getTransaction`, a 2-second production interval, and a 150-attempt ceiling (approximately five minutes). After a timeout, inspect the transaction hash in Explorer and refresh contract state before deciding whether to retry; do not blindly resubmit a value-bearing transaction.
 
 If no contract address is configured, or if the user explicitly enables the switch, the UI enters a prominently labeled offline sandbox. Sandbox fixture controls are hidden in live mode and never count as on-chain evidence.
 
@@ -125,7 +125,7 @@ npm run lint
 npm run build
 ```
 
-The verified local result is 14 passing Vitest tests, including OKX/EIP-1193 connection, Studionet addition/switching, and rejection recovery, a clean Oxlint run, and a successful production build.
+The verified local result is 15 passing Vitest tests, including OKX/EIP-1193 connection, Studionet addition/switching, rejection recovery, and both typed and raw Studionet execution-result schemas, a clean Oxlint run, and a successful production build.
 
 ## Deployment notes
 
