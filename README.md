@@ -15,7 +15,7 @@ The Explorer currently shows only the successful deployment transaction for this
 
 ![SponsorGuard live Studionet interface](docs/sponsorguard-live.png)
 
-_Captured from the public production URL after release `d1b98a5`. The image verifies the deployed interface and configured contract address; it does not claim a completed campaign transaction._
+_Captured from the public production URL after wallet-compatibility release `c2ae2d0`. The image verifies the deployed interface and configured contract address; it does not claim a completed campaign transaction._
 
 ## Trust problem
 

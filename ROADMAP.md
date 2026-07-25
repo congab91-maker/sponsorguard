@@ -18,7 +18,7 @@ The React and TypeScript frontend is connected to the deployed Studionet contrac
 
 - Source repository: [congab91-maker/sponsorguard](https://github.com/congab91-maker/sponsorguard)
 - Live web application: [SponsorGuard on Vercel](https://sponsorguard-buildgenlayer.vercel.app)
-- Reviewer screenshot: [`docs/sponsorguard-live.png`](docs/sponsorguard-live.png), captured from the public live-mode interface after release `d1b98a5`; it is UI evidence, not campaign-transaction evidence.
+- Reviewer screenshot: [`docs/sponsorguard-live.png`](docs/sponsorguard-live.png), captured from the public live-mode interface after wallet-compatibility release `c2ae2d0`; it is UI evidence, not campaign-transaction evidence.
 - Studionet contract: [`0x2012c18961Ba71Defb3de61eabCb87866938CC95`](https://explorer-studio.genlayer.com/address/0x2012c18961Ba71Defb3de61eabCb87866938CC95)
 - Deployment transaction: [`0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54`](https://explorer-studio.genlayer.com/tx/0xaa536e421507497e483cd50e6b316bece714d8e52a04241dac34367427d53c54), finalized successfully on Studionet
 - Network: GenLayer Studionet, chain ID `61999`, using the official Studio RPC documented in [Networks & RPCs](https://docs.genlayer.com/developers/networks)
